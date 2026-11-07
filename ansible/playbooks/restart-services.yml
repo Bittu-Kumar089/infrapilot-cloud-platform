@@ -1,0 +1,40 @@
+---
+- name: Restart InfraPilot Services
+  hosts: local
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: Restart Nginx container
+      ansible.builtin.command:
+        cmd: docker restart infrapilot-nginx
+      register: nginx_restart
+      changed_when: nginx_restart.rc == 0
+
+    - name: Restart Nagios container
+      ansible.builtin.command:
+        cmd: docker restart infrapilot-nagios
+      register: nagios_restart
+      changed_when: nagios_restart.rc == 0
+
+    - name: Wait for services to start
+      ansible.builtin.pause:
+        seconds: 5
+
+    - name: Verify Nginx container
+      ansible.builtin.command:
+        cmd: docker inspect -f '{{ '{{' }}.State.Status{{ '}}' }}' infrapilot-nginx
+      register: nginx_status
+      changed_when: false
+
+    - name: Verify Nagios container
+      ansible.builtin.command:
+        cmd: docker inspect -f '{{ '{{' }}.State.Status{{ '}}' }}' infrapilot-nagios
+      register: nagios_status
+      changed_when: false
+
+    - name: Display service status
+      ansible.builtin.debug:
+        msg:
+          - "Nginx Status: {{ nginx_status.stdout }}"
+          - "Nagios Status: {{ nagios_status.stdout }}"

@@ -1,0 +1,36 @@
+---
+- name: InfraPilot - Automated Nginx Deployment
+  hosts: local
+  gather_facts: false
+
+  tasks:
+    - name: Check whether Nginx container exists
+      ansible.builtin.command:
+        cmd: docker inspect infrapilot-nginx
+      register: nginx_check
+      changed_when: false
+      failed_when: false
+
+    - name: Create Nginx container if it does not exist
+      ansible.builtin.command:
+        cmd: docker run -d --name infrapilot-nginx -p 8081:80 --restart unless-stopped nginx:alpine
+      when: nginx_check.rc != 0
+      register: nginx_create
+
+    - name: Start Nginx if it already exists
+      ansible.builtin.command:
+        cmd: docker start infrapilot-nginx
+      when:
+        - nginx_check.rc == 0
+        - "'false' in nginx_check.stdout"
+      register: nginx_start
+
+    - name: Verify Nginx container status
+      ansible.builtin.command:
+        cmd: docker inspect --format={{ '{{' }}.State.Status{{ '}}' }} infrapilot-nginx
+      register: nginx_status
+      changed_when: false
+
+    - name: Display deployment result
+      ansible.builtin.debug:
+        msg: "InfraPilot Nginx deployment status: {{ nginx_status.stdout }}"
