@@ -1,0 +1,34 @@
+﻿services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: infrapilot-backend
+    restart: unless-stopped
+    environment:
+      PORT: 5000
+      NAGIOS_RECOVERY_SECRET: ${NAGIOS_RECOVERY_SECRET}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./ansible:/app/ansible:ro
+    expose:
+      - "5000"
+    networks:
+      - infrapilot-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: infrapilot-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    networks:
+      - infrapilot-network
+
+networks:
+  infrapilot-network:
+    driver: bridge

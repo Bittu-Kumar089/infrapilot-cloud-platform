@@ -13,7 +13,7 @@ import {
   Activity
 } from "lucide-react";
 
-const API = "http://127.0.0.1:5000/api";
+const API = "/api";
 
 export default function Automation() {
   const [loading, setLoading] = useState(false);
@@ -143,7 +143,7 @@ export default function Automation() {
         <div className="rounded-xl border border-gray-800 bg-[#111827] p-5">
           <Layers className="mb-3 text-purple-400" size={24} />
           <p className="text-sm text-gray-400">Available Playbooks</p>
-          <h2 className="mt-1 text-xl font-semibold">2</h2>
+          <h2 className="mt-1 text-xl font-semibold">3</h2>
         </div>
 
         <div className="rounded-xl border border-gray-800 bg-[#111827] p-5">
@@ -166,7 +166,7 @@ export default function Automation() {
           <div>
             <h2 className="text-lg font-semibold">Infrastructure Health Check</h2>
             <p className="mt-2 text-sm text-gray-400">
-              Check Nginx and Nagios Docker container status using Ansible.
+              Check Frontend and Backend Docker container status using Ansible.
             </p>
           </div>
 
@@ -183,8 +183,8 @@ export default function Automation() {
         </div>
 
         <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <StatusCard name="Nginx" />
-          <StatusCard name="Nagios" />
+          <StatusCard name="Frontend" />
+          <StatusCard name="Backend" />
         </div>
 
         {healthError && (
@@ -235,7 +235,7 @@ export default function Automation() {
               Automated Service Restart
             </h2>
             <p className="mt-2 text-sm text-gray-400">
-              Restart Nginx and Nagios Docker containers using Ansible.
+              Restart the Frontend Nginx container and verify Backend service using Ansible.
             </p>
           </div>
 
@@ -261,7 +261,7 @@ export default function Automation() {
 
           <div className="rounded-lg bg-gray-900 p-4">
             <p className="text-xs text-gray-500">Container 2</p>
-            <p className="mt-1 font-medium">infrapilot-nagios</p>
+            <p className="mt-1 font-medium">infrapilot-backend</p>
           </div>
         </div>
 

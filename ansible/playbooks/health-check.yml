@@ -1,25 +1,44 @@
----
+﻿---
 - name: InfraPilot - Docker Health Check
   hosts: local
   gather_facts: false
 
   tasks:
-    - name: Check Nginx container
+    - name: Check Frontend container status
       ansible.builtin.command:
-        cmd: docker inspect --format={{ '{{' }}.State.Status{{ '}}' }} infrapilot-nginx
-      register: nginx_status
+        argv:
+          - docker
+          - inspect
+          - --format
+          - "{{ '{{' }}.State.Status{{ '}}' }}"
+          - infrapilot-nginx
+      register: frontend_status
       changed_when: false
       failed_when: false
 
-    - name: Check Nagios container
+    - name: Check Backend container status
       ansible.builtin.command:
-        cmd: docker inspect --format={{ '{{' }}.State.Status{{ '}}' }} infrapilot-nagios
-      register: nagios_status
+        argv:
+          - docker
+          - inspect
+          - --format
+          - "{{ '{{' }}.State.Status{{ '}}' }}"
+          - infrapilot-backend
+      register: backend_status
       changed_when: false
       failed_when: false
 
-    - name: Display container health report
+    - name: Display InfraPilot health report
       ansible.builtin.debug:
         msg:
-          - "Nginx Status: {{ nginx_status.stdout | default('Not Found') }}"
-          - "Nagios Status: {{ nagios_status.stdout | default('Not Found') }}"
+          - "Frontend Status: {{ frontend_status.stdout | default('Not Found') if frontend_status.rc == 0 else 'Not Found' }}"
+          - "Backend Status: {{ backend_status.stdout | default('Not Found') if backend_status.rc == 0 else 'Not Found' }}"
+
+    - name: Fail if any required container is not running
+      ansible.builtin.fail:
+        msg: "InfraPilot health check failed. Please inspect the container status."
+      when: >-
+        frontend_status.rc != 0 or
+        backend_status.rc != 0 or
+        frontend_status.stdout | trim != 'running' or
+        backend_status.stdout | trim != 'running'

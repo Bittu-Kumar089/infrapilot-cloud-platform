@@ -433,18 +433,17 @@ app.post("/api/services/:name/manual-recover", async (req, res) => {
 // ANSIBLE PLAYBOOK EXECUTION HELPER
 // ========================================
 
+
 function runAnsiblePlaybook(playbook, res) {
   const allowedPlaybooks = {
     "deploy-nginx": {
       file: "deploy-nginx.yml",
       message: "Ansible Nginx deployment completed"
     },
-
     "health-check": {
       file: "health-check.yml",
       message: "Docker health check completed"
     },
-
     "restart-services": {
       file: "restart-services.yml",
       message: "Docker services restarted successfully"
@@ -460,22 +459,50 @@ function runAnsiblePlaybook(playbook, res) {
     });
   }
 
-  const args = [
-    "-d",
-    "Ubuntu",
-    "--",
-    "ansible-playbook",
-    "-i",
-    "/mnt/c/Users/Dell/infrapilot-cloud-platform/ansible/inventory/inventory.ini",
-    `/mnt/c/Users/Dell/infrapilot-cloud-platform/ansible/playbooks/${selected.file}`
-  ];
+  // Restart Nginx asynchronously so the API response
+  // is sent before the frontend container is restarted.
+  if (playbook === "restart-services") {
+    res.status(202).json({
+      success: true,
+      message: "Restart process accepted. Ansible is executing in the background.",
+      playbook: selected.file
+    });
+
+    execFile(
+      "ansible-playbook",
+      [
+        "-i",
+        "/app/ansible/inventory/inventory.ini",
+        `/app/ansible/playbooks/${selected.file}`
+      ],
+      {
+        timeout: 120000,
+        maxBuffer: 1024 * 1024
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.error("Ansible restart failed:", error.message);
+          console.error(stderr || "");
+          return;
+        }
+
+        console.log("Ansible restart completed:");
+        console.log(stdout);
+      }
+    );
+
+    return;
+  }
 
   execFile(
-    "wsl.exe",
-    args,
+    "ansible-playbook",
+    [
+      "-i",
+      "/app/ansible/inventory/inventory.ini",
+      `/app/ansible/playbooks/${selected.file}`
+    ],
     {
       timeout: 120000,
-      windowsHide: true,
       maxBuffer: 1024 * 1024
     },
     (error, stdout, stderr) => {
@@ -521,13 +548,7 @@ app.get("/api/automation/health-check", (req, res) => {
 // ========================================
 
 
-app.get("/api/automation/debug", (req, res) => {
-  res.json({
-    message: "Automation routes are loaded",
-    restartRouteExpected: true,
-    processId: process.pid
-  });
-});
+
 
 app.post("/api/automation/restart-services", (req, res) => {
   runAnsiblePlaybook("restart-services", res);
@@ -563,7 +584,7 @@ app.use((error, req, res, next) => {
 // START SERVER
 // ========================================
 
-app.listen(PORT, "127.0.0.1", () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log("-----------------------------------");
   console.log("       INFRAPILOT BACKEND");
   console.log("-----------------------------------");

@@ -1,40 +1,68 @@
----
-- name: Restart InfraPilot Services
+﻿---
+- name: InfraPilot - Restart and Verify Services
   hosts: local
-  connection: local
   gather_facts: false
 
   tasks:
-    - name: Restart Nginx container
+    - name: Check Frontend container exists
       ansible.builtin.command:
-        cmd: docker restart infrapilot-nginx
-      register: nginx_restart
-      changed_when: nginx_restart.rc == 0
+        argv:
+          - docker
+          - inspect
+          - infrapilot-nginx
+      register: frontend_exists
+      changed_when: false
+      failed_when: false
 
-    - name: Restart Nagios container
+    - name: Stop if Frontend container does not exist
+      ansible.builtin.fail:
+        msg: "Frontend container infrapilot-nginx was not found."
+      when: frontend_exists.rc != 0
+
+    - name: Restart Frontend container
       ansible.builtin.command:
-        cmd: docker restart infrapilot-nagios
-      register: nagios_restart
-      changed_when: nagios_restart.rc == 0
+        argv:
+          - docker
+          - restart
+          - infrapilot-nginx
+      register: frontend_restart
+      changed_when: frontend_restart.rc == 0
 
-    - name: Wait for services to start
+    - name: Wait for Frontend to initialize
       ansible.builtin.pause:
         seconds: 5
 
-    - name: Verify Nginx container
+    - name: Verify Frontend container
       ansible.builtin.command:
-        cmd: docker inspect -f '{{ '{{' }}.State.Status{{ '}}' }}' infrapilot-nginx
-      register: nginx_status
+        argv:
+          - docker
+          - inspect
+          - --format
+          - "{{ '{{' }}.State.Status{{ '}}' }}"
+          - infrapilot-nginx
+      register: frontend_status
       changed_when: false
 
-    - name: Verify Nagios container
+    - name: Verify Backend container
       ansible.builtin.command:
-        cmd: docker inspect -f '{{ '{{' }}.State.Status{{ '}}' }}' infrapilot-nagios
-      register: nagios_status
+        argv:
+          - docker
+          - inspect
+          - --format
+          - "{{ '{{' }}.State.Status{{ '}}' }}"
+          - infrapilot-backend
+      register: backend_status
       changed_when: false
 
-    - name: Display service status
+    - name: Display restart report
       ansible.builtin.debug:
         msg:
-          - "Nginx Status: {{ nginx_status.stdout }}"
-          - "Nagios Status: {{ nagios_status.stdout }}"
+          - "Frontend Status: {{ frontend_status.stdout }}"
+          - "Backend Status: {{ backend_status.stdout }}"
+
+    - name: Fail if required services are not running
+      ansible.builtin.fail:
+        msg: "Service verification failed after restart."
+      when: >-
+        frontend_status.stdout | trim != 'running' or
+        backend_status.stdout | trim != 'running'

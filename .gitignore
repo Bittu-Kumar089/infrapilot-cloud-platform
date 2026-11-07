@@ -23,3 +23,9 @@ override.tf.json
 # Private keys and credentials
 *.pem
 credentials
+
+# InfraPilot local backups and temporary files
+nagios-backup/
+nsca-inspect.cfg
+nsca-pid.txt
+nsca.cfg.backup

@@ -13,7 +13,7 @@ import {
   Container,
 } from "lucide-react";
 
-const API = "http://127.0.0.1:5000/api";
+const API = "/api";
 
 const SelfHealing = () => {
   const [services, setServices] = useState([]);
